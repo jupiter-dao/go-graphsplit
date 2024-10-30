@@ -47,6 +47,12 @@ type Finfo struct {
 	SeekEnd   int64
 }
 
+type SimpleFileInfo struct {
+	Path  string
+	Start int64
+	End   int64
+}
+
 // file system tree node
 type fsNode struct {
 	Name string
@@ -162,7 +168,9 @@ func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath string, pa
 	pchan := make(chan struct{}, parallel)
 	wg := sync.WaitGroup{}
 	lock := sync.Mutex{}
+	sfis := make([]SimpleFileInfo, 0, len(fileList))
 	for i, item := range fileList {
+		sfis = append(sfis, SimpleFileInfo{item.Path, item.SeekStart, item.SeekEnd})
 		wg.Add(1)
 		go func(i int, item Finfo) {
 			defer func() {
@@ -177,15 +185,13 @@ func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath string, pa
 			}
 			fn, ok := fileNode.(*dag.ProtoNode)
 			if !ok {
-				emsg := "file node should be *dag.ProtoNode"
-				log.Warn(emsg)
+				log.Warn("file node should be *dag.ProtoNode")
 				return
 			}
 			lock.Lock()
 			fileNodeMap[item.Path] = fn
 			lock.Unlock()
-			fmt.Println(item.Path)
-			log.Infof("file node: %s", fileNode)
+			// log.Infof("path: %s, file node: %s", item.Path, fileNode)
 		}(i, item)
 	}
 	wg.Wait()
@@ -229,8 +235,8 @@ func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath string, pa
 			var parentKey string
 			dir := dirList[i]
 			dirKey := getDirKey(dirList, i)
-			log.Info(dirList)
-			log.Infof("dirKey: %s", dirKey)
+			// log.Info(dirList)
+			// log.Infof("dirKey: %s", dirKey)
 			dirNode, ok = dirNodeMap[dirKey]
 			if !ok {
 				dirNode = unixfs.EmptyDirNode()
@@ -246,7 +252,7 @@ func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath string, pa
 			} else {
 				parentKey = getDirKey(dirList, i-1)
 			}
-			log.Infof("parentKey: %s", parentKey)
+			// log.Infof("parentKey: %s", parentKey)
 			parentNode, ok = dirNodeMap[parentKey]
 			if !ok {
 				parentNode = unixfs.EmptyDirNode()
@@ -285,19 +291,24 @@ func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath string, pa
 	}
 	log.Infof("generate car file completed, time elapsed: %s", time.Since(genCarStartTime))
 
-	fsBuilder := NewFSBuilder(rootNode, dagServ)
-	fsNode, err := fsBuilder.Build()
-	if err != nil {
-		return nil, "", "", err
-	}
-	fsNodeBytes, err := json.Marshal(fsNode)
-	if err != nil {
-		return nil, "", "", err
-	}
+	// fsBuilder := NewFSBuilder(rootNode, dagServ)
+	// _, err = fsBuilder.Build()
+	// if err != nil {
+	// 	return nil, "", "", err
+	// }
+	// fsNodeBytes, err := json.Marshal(fsNode)
+	// if err != nil {
+	// 	return nil, "", "", err
+	// }
 	// log.Info(dirNodeMap)
+
+	fileInfo, err := json.Marshal(sfis)
+	if err != nil {
+		return nil, "", "", err
+	}
 	log.Info("++++++++++++ finished to build ipld +++++++++++++")
 
-	return buf, rootNode.Cid().String(), string(fsNodeBytes), nil
+	return buf, rootNode.Cid().String(), string(fileInfo), nil
 }
 
 func allSelector() ipldprime.Node {
@@ -440,7 +451,7 @@ func GetGraphCount(args []string, sliceSize int64) int {
 }
 
 func GetFileListAsync(args []string) chan Finfo {
-	fichan := make(chan Finfo, 0)
+	fichan := make(chan Finfo, 1)
 	go func() {
 		defer close(fichan)
 		for _, path := range args {
@@ -464,10 +475,6 @@ func GetFileListAsync(args []string) chan Finfo {
 					templist = append(templist, fmt.Sprintf("%s/%s", path, n.Name()))
 				}
 				embededChan := GetFileListAsync(templist)
-				if err != nil {
-					log.Warn(err)
-					return
-				}
 
 				for item := range embededChan {
 					fichan <- item

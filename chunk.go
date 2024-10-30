@@ -228,7 +228,6 @@ func Chunk(ctx context.Context, sliceSize int64, parentPath, targetPath, carDir,
 					graphSliceCount++
 				}
 			}
-
 		}
 	}
 	if cumuSize > 0 {
