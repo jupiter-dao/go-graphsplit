@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/filedrive-team/go-graphsplit"
+	"github.com/filedrive-team/go-graphsplit/config"
 	"github.com/filedrive-team/go-graphsplit/dataset"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
@@ -24,7 +25,6 @@ func main() {
 
 	app := &cli.App{
 		Name:     "graphsplit",
-		Flags:    []cli.Flag{},
 		Commands: local,
 	}
 
@@ -38,11 +38,6 @@ var chunkCmd = &cli.Command{
 	Name:  "chunk",
 	Usage: "Generate CAR files of the specified size",
 	Flags: []cli.Flag{
-		&cli.Uint64Flag{
-			Name:  "slice-size",
-			Value: 17179869184, // 16G
-			Usage: "specify chunk piece size",
-		},
 		&cli.UintFlag{
 			Name:  "parallel",
 			Value: 2,
@@ -83,20 +78,43 @@ var chunkCmd = &cli.Command{
 			Value: false,
 			Usage: "add padding to carfile in order to convert it to piece file",
 		},
+		&cli.StringFlag{
+			Name:    "config",
+			Usage:   "config file path",
+			Aliases: []string{"c"},
+		},
 	},
 	ArgsUsage: "<input path>",
 	Action: func(c *cli.Context) error {
 		ctx := context.Background()
 		parallel := c.Uint("parallel")
-		sliceSize := c.Uint64("slice-size")
 		parentPath := c.String("parent-path")
 		carDir := c.String("car-dir")
 		graphName := c.String("graph-name")
 		if !graphsplit.ExistDir(carDir) {
 			return fmt.Errorf("the path of car-dir does not exist")
 		}
-		if sliceSize == 0 {
-			return fmt.Errorf("slice size has been set as 0")
+
+		cfgPath := c.String("config")
+		if cfgPath == "" {
+			return fmt.Errorf("config file path is required")
+		}
+		log.Infoln("config file path: ", cfgPath)
+
+		cfg, err := config.LoadConfig(cfgPath)
+		if err != nil {
+			return fmt.Errorf("failed to load config file: %v", err)
+		}
+		log.Infof("old slice size: %d", cfg.SliceSize)
+		cfg.SliceSize++
+		sliceSize := cfg.SliceSize
+		log.Infof("new slice size: %d", sliceSize)
+		if sliceSize <= 0 {
+			return fmt.Errorf("slice size has been set as %v", sliceSize)
+		}
+		err = cfg.SaveConfig(cfgPath)
+		if err != nil {
+			return fmt.Errorf("failed to save config file: %v", err)
 		}
 
 		targetPath := c.Args().First()
