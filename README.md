@@ -30,13 +30,13 @@ make
 
 [See the work flow of graphsplit](doc/README.md)
 
+[Example configuration file](https://github.com/ipfs-force-community/go-graphsplit/tree/main/config/example.toml)
+
 Splitting dataset:
 ```sh
 ./graphsplit chunk \
 # car-dir: folder for splitted smaller pieces, in form of .car
 --car-dir=path/to/car-dir \
-# slice-size: size for each pieces
---slice-size=17179869184 \
 # parallel: number goroutines run when building ipld nodes
 --parallel=2 \
 # graph-name: it will use graph-name for prefix of smaller pieces
@@ -47,6 +47,8 @@ Splitting dataset:
 --add-padding=false \
 # set true if want using piececid to name the chunk file
 --rename=true \
+# toml file, including SliceSize
+--config=/path/to/config \
 /path/to/dataset
 ```
 

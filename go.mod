@@ -23,9 +23,17 @@ require (
 	github.com/urfave/cli/v2 v2.6.0
 )
 
-require github.com/ipfs/go-ipld-legacy v0.2.1 // indirect
+require (
+	github.com/gozelle/color v1.14.1 // indirect
+	github.com/gozelle/go-difflib v1.0.0 // indirect
+	github.com/gozelle/spew v1.1.17 // indirect
+	github.com/gozelle/yaml v0.0.0-20221214152138-81b78a92d903 // indirect
+	github.com/ipfs/go-ipld-legacy v0.2.1 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+)
 
 require (
+	github.com/BurntSushi/toml v1.5.0
 	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/crackcomm/go-gitignore v0.0.0-20170627025303-887ab5e44cc3 // indirect
@@ -41,6 +49,7 @@ require (
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20190812055157-5d271430af9f // indirect
+	github.com/gozelle/testify v1.8.12
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
@@ -58,7 +67,7 @@ require (
 	github.com/klauspost/compress v1.11.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
