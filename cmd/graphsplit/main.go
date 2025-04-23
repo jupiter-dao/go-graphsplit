@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/filedrive-team/go-graphsplit"
 	"github.com/filedrive-team/go-graphsplit/config"
@@ -83,6 +84,10 @@ var chunkCmd = &cli.Command{
 			Usage:   "config file path",
 			Aliases: []string{"c"},
 		},
+		&cli.BoolFlag{
+			Name:  "loop",
+			Usage: "loop chunking",
+		},
 	},
 	ArgsUsage: "<input path>",
 	Action: func(c *cli.Context) error {
@@ -127,7 +132,26 @@ var chunkCmd = &cli.Command{
 			cb = graphsplit.ErrCallback()
 		}
 
-		return graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb)
+		if !c.Bool("loop") {
+			return graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb)
+		}
+		for {
+			err = graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb)
+			if err != nil {
+				return fmt.Errorf("failed to chunk: %v", err)
+			}
+
+			sliceSize++
+			cfg.SliceSize = sliceSize
+			err = cfg.SaveConfig(cfgPath)
+			if err != nil {
+				return fmt.Errorf("failed to save config file: %v", err)
+			}
+			log.Infof("slice size has been set as %d", sliceSize)
+
+			log.Infof("chunking completed! waiting for 60 seconds...")
+			<-time.After(60 * time.Second)
+		}
 	},
 }
 
