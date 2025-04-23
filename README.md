@@ -33,6 +33,7 @@ make
 [Example configuration file](https://github.com/ipfs-force-community/go-graphsplit/tree/main/config/example.toml)
 
 Splitting dataset:
+**如果加上 --loop flag，程序将会循环切 piece，不会退出**
 ```sh
 ./graphsplit chunk \
 # car-dir: folder for splitted smaller pieces, in form of .car
