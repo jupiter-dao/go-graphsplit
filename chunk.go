@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -37,9 +39,20 @@ func (cc *commPCallback) OnSuccess(buf *Buffer, graphName, payloadCid, fsDetail 
 	log.Infof("piece cid: %s, payload size: %d, size: %d ", cpRes.Root.String(), cpRes.PayloadSize, cpRes.Size)
 
 	buf.SeekStart()
-	if err := os.WriteFile(path.Join(cc.carDir, cpRes.Root.String()+".car"), buf.Bytes(), 0o644); err != nil {
+	carFileName := filepath.Join(cc.carDir, cpRes.Root.String())
+	if !cc.rename {
+		carFileName += ".car"
+	}
+	carFile, err := os.OpenFile(carFileName, os.O_RDWR|os.O_CREATE, 0o644)
+	if err != nil {
+		log.Fatalf("failed to create car file: %s", err)
+	}
+	defer carFile.Close()
+
+	if _, err = io.Copy(carFile, buf); err != nil {
 		log.Fatalf("failed to write car file: %s", err)
 	}
+	buf.Reset()
 
 	// Add node inof to manifest.csv
 	manifestPath := path.Join(cc.carDir, "manifest.csv")
@@ -167,7 +180,7 @@ func Chunk(ctx context.Context, sliceSize int64, parentPath, targetPath, carDir,
 			cumuSize += fileSize
 			graphFiles = append(graphFiles, item)
 			// todo build ipld from graphFiles
-			BuildIpldGraph(ctx, graphFiles, GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb)
+			BuildIpldGraph(ctx, graphFiles, GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb, sliceSize)
 			log.Infof("cumu-size: %d", cumuSize)
 			log.Infof("%s", GenGraphName(graphName, graphSliceCount, sliceTotal))
 			log.Infof("=================")
@@ -193,7 +206,7 @@ func Chunk(ctx context.Context, sliceSize int64, parentPath, targetPath, carDir,
 			})
 			fileSliceCount++
 			// todo build ipld from graphFiles
-			BuildIpldGraph(ctx, graphFiles, GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb)
+			BuildIpldGraph(ctx, graphFiles, GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb, sliceSize)
 			log.Infof("cumu-size: %d", cumuSize+firstCut)
 			log.Infof("%s", GenGraphName(graphName, graphSliceCount, sliceTotal))
 			log.Infof("=================")
@@ -219,7 +232,7 @@ func Chunk(ctx context.Context, sliceSize int64, parentPath, targetPath, carDir,
 				fileSliceCount++
 				if seekEnd-seekStart == sliceSize-1 {
 					// todo build ipld from graphFiles
-					BuildIpldGraph(ctx, graphFiles, GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb)
+					BuildIpldGraph(ctx, graphFiles, GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb, sliceSize)
 					log.Infof("cumu-size: %d", sliceSize)
 					log.Infof("%s", GenGraphName(graphName, graphSliceCount, sliceTotal))
 					log.Infof("=================")
@@ -232,7 +245,7 @@ func Chunk(ctx context.Context, sliceSize int64, parentPath, targetPath, carDir,
 	}
 	if cumuSize > 0 {
 		// todo build ipld from graphFiles
-		BuildIpldGraph(ctx, graphFiles, GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb)
+		BuildIpldGraph(ctx, graphFiles, GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb, sliceSize)
 		log.Infof("cumu-size: %d", cumuSize)
 		log.Infof("%s", GenGraphName(graphName, graphSliceCount, sliceTotal))
 		log.Infof("=================")
