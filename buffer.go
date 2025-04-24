@@ -19,6 +19,13 @@ type Buffer struct {
 	lastRead readOp // last read operation, so that Unread* can work correctly.
 }
 
+func NewBuffer(length int) *Buffer {
+	return &Buffer{
+		buf:      make([]byte, 0, length),
+		lastRead: opInvalid,
+	}
+}
+
 // The readOp constants describe the last action performed on
 // the buffer, so that UnreadRune and UnreadByte can check for
 // invalid usage. opReadRuneX constants are chosen such that

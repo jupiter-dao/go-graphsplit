@@ -131,8 +131,15 @@ func (b *FSBuilder) getNodeByLink(ln *ipld.Link) (fn fsNode, err error) {
 	return
 }
 
-func BuildIpldGraph(ctx context.Context, fileList []Finfo, graphName, parentPath, carDir string, parallel int, cb GraphBuildCallback) {
-	buf, payloadCid, fsDetail, err := buildIpldGraph(ctx, fileList, parentPath, parallel)
+func BuildIpldGraph(ctx context.Context,
+	fileList []Finfo,
+	graphName, parentPath,
+	carDir string,
+	parallel int,
+	cb GraphBuildCallback,
+	sliceSize int64,
+) {
+	buf, payloadCid, fsDetail, err := buildIpldGraph(ctx, fileList, parentPath, parallel, sliceSize)
 	if err != nil {
 		// log.Fatal(err)
 		cb.OnError(err)
@@ -141,7 +148,7 @@ func BuildIpldGraph(ctx context.Context, fileList []Finfo, graphName, parentPath
 	cb.OnSuccess(buf, graphName, payloadCid, fsDetail)
 }
 
-func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath string, parallel int) (*Buffer, string, string, error) {
+func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath string, parallel int, sliceSize int64) (*Buffer, string, string, error) {
 	bs2 := bstore.NewBlockstore(dss.MutexWrap(datastore.NewMapDatastore()))
 	dagServ := dag.NewDAGService(blockservice.New(bs2, offline.Exchange(bs2)))
 
@@ -282,7 +289,7 @@ func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath string, pa
 	log.Infof("start to generate car for %s", rootNode.Cid())
 	genCarStartTime := time.Now()
 	// car
-	buf := new(Buffer)
+	buf := NewBuffer(int(sliceSize))
 	selector := allSelector()
 	sc := car.NewSelectiveCar(ctx, bs2, []car.Dag{{Root: rootNode.Cid(), Selector: selector}})
 	err = sc.Write(buf)
