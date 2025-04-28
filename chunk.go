@@ -39,20 +39,25 @@ func (cc *commPCallback) OnSuccess(buf *Buffer, graphName, payloadCid, fsDetail 
 	log.Infof("piece cid: %s, payload size: %d, size: %d ", cpRes.Root.String(), cpRes.PayloadSize, cpRes.Size)
 
 	buf.SeekStart()
-	carFileName := filepath.Join(cc.carDir, cpRes.Root.String())
-	if !cc.rename {
-		carFileName += ".car"
-	}
-	carFile, err := os.OpenFile(carFileName, os.O_RDWR|os.O_CREATE, 0o644)
+	carFilePath := filepath.Join(cc.carDir, cpRes.Root.String())
+	carFileNameWithSuffix := carFilePath + ".car"
+
+	carFile, err := os.OpenFile(carFileNameWithSuffix, os.O_RDWR|os.O_CREATE, 0o644)
 	if err != nil {
 		log.Fatalf("failed to create car file: %s", err)
 	}
-	defer carFile.Close()
 
 	if _, err = io.Copy(carFile, buf); err != nil {
 		log.Fatalf("failed to write car file: %s", err)
 	}
 	buf.Reset()
+	carFile.Close()
+
+	if cc.rename {
+		if err := os.Rename(carFileNameWithSuffix, carFilePath); err != nil {
+			log.Fatalf("failed to rename car file: %s", err)
+		}
+	}
 
 	// Add node inof to manifest.csv
 	manifestPath := path.Join(cc.carDir, "manifest.csv")
