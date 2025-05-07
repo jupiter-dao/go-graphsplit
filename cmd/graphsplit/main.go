@@ -132,9 +132,13 @@ var chunkCmd = &cli.Command{
 			cb = graphsplit.ErrCallback()
 		}
 
-		if !c.Bool("loop") {
+		loop := c.Bool("loop")
+		fmt.Println("loop: ", loop)
+		if !loop {
+			fmt.Println("chunking once...")
 			return graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb)
 		}
+		fmt.Println("loop chunking...")
 		for {
 			err = graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb)
 			if err != nil {
