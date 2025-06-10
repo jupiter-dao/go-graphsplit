@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	pa "path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -108,10 +107,10 @@ func CarTo(carPath, outputDir string, parallel int) {
 			if fi.IsDir() {
 				return nil
 			}
-			if strings.ToLower(pa.Ext(fi.Name())) != ".car" {
-				log.Warn(path, ", it's not a CAR file, skip it")
-				return nil
-			}
+			// if strings.ToLower(pa.Ext(fi.Name())) != ".car" {
+			// 	log.Warn(path, ", it's not a CAR file, skip it")
+			// 	return nil
+			// }
 			workerCh <- func() {
 				bs2 := bstore.NewBlockstore(dss.MutexWrap(datastore.NewMapDatastore()))
 				rdag := merkledag.NewDAGService(blockservice.New(bs2, offline.Exchange(bs2)))
@@ -147,22 +146,16 @@ func CarTo(carPath, outputDir string, parallel int) {
 	limitCh := make(chan struct{}, parallel)
 	wg := sync.WaitGroup{}
 	func() {
-		for {
-			select {
-			case taskFunc, ok := <-workerCh:
-				if !ok {
-					return
-				}
-				limitCh <- struct{}{}
-				wg.Add(1)
-				go func() {
-					defer func() {
-						<-limitCh
-						wg.Done()
-					}()
-					taskFunc()
+		for taskFunc := range workerCh {
+			limitCh <- struct{}{}
+			wg.Add(1)
+			go func(taskFunc func()) {
+				defer func() {
+					<-limitCh
+					wg.Done()
 				}()
-			}
+				taskFunc()
+			}(taskFunc)
 		}
 	}()
 	wg.Wait()
