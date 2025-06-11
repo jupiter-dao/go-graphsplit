@@ -3,7 +3,9 @@ module github.com/filedrive-team/go-graphsplit
 go 1.21
 
 require (
+	github.com/BurntSushi/toml v1.5.0
 	github.com/beeleelee/go-ds-rpc v0.1.0 // this needs to be updated too https://github.com/beeleelee/go-ds-rpc/pull/3
+	github.com/docker/go-units v0.5.0
 	github.com/filecoin-project/go-commp-utils/v2 v2.1.0
 	github.com/filecoin-project/go-padreader v0.0.1
 	github.com/filecoin-project/go-state-types v0.14.0
@@ -24,16 +26,6 @@ require (
 )
 
 require (
-	github.com/gozelle/color v1.14.1 // indirect
-	github.com/gozelle/go-difflib v1.0.0 // indirect
-	github.com/gozelle/spew v1.1.17 // indirect
-	github.com/gozelle/yaml v0.0.0-20221214152138-81b78a92d903 // indirect
-	github.com/ipfs/go-ipld-legacy v0.2.1 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-)
-
-require (
-	github.com/BurntSushi/toml v1.5.0
 	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/crackcomm/go-gitignore v0.0.0-20170627025303-887ab5e44cc3 // indirect
@@ -49,7 +41,11 @@ require (
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20190812055157-5d271430af9f // indirect
+	github.com/gozelle/color v1.14.1 // indirect
+	github.com/gozelle/go-difflib v1.0.0 // indirect
+	github.com/gozelle/spew v1.1.17 // indirect
 	github.com/gozelle/testify v1.8.12
+	github.com/gozelle/yaml v0.0.0-20221214152138-81b78a92d903 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
@@ -59,6 +55,7 @@ require (
 	github.com/ipfs/go-ipfs-posinfo v0.0.1 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.3 // indirect
 	github.com/ipfs/go-ipld-cbor v0.1.0 // indirect
+	github.com/ipfs/go-ipld-legacy v0.2.1 // indirect
 	github.com/ipfs/go-log v1.0.5 // indirect
 	github.com/ipfs/go-metrics-interface v0.0.1 // indirect
 	github.com/ipfs/go-verifcid v0.0.1 // indirect
@@ -67,6 +64,7 @@ require (
 	github.com/klauspost/compress v1.11.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
