@@ -1,1 +1,9 @@
+# 配置文件
+# 自动生成，包含字段说明
+
+# SliceSize, the size of each slice in bytes, default is 18G
 SliceSize = 19327352832
+# ExtraFilePath extra file path, 指向存储了图片、视频等文件的目录
+ExtraFilePath = ""
+# ExtraFileSizeInOnePiece 每个 piece 文件包含图片和视频等文件的大小, 例如：500Mib
+ExtraFileSizeInOnePiece = ""

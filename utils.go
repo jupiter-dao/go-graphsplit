@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -133,13 +135,15 @@ func (b *FSBuilder) getNodeByLink(ln *ipld.Link) (fn fsNode, err error) {
 
 func BuildIpldGraph(ctx context.Context,
 	fileList []Finfo,
-	graphName, parentPath,
+	graphName,
+	parentPath,
 	carDir string,
 	parallel int,
 	cb GraphBuildCallback,
 	sliceSize int64,
+	ef *ExtraFile,
 ) {
-	buf, payloadCid, fsDetail, err := buildIpldGraph(ctx, fileList, parentPath, parallel, sliceSize)
+	buf, payloadCid, fsDetail, err := buildIpldGraph(ctx, fileList, parentPath, parallel, sliceSize, ef)
 	if err != nil {
 		// log.Fatal(err)
 		cb.OnError(err)
@@ -148,7 +152,13 @@ func BuildIpldGraph(ctx context.Context,
 	cb.OnSuccess(buf, graphName, payloadCid, fsDetail)
 }
 
-func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath string, parallel int, sliceSize int64) (*Buffer, string, string, error) {
+func buildIpldGraph(ctx context.Context,
+	fileList []Finfo,
+	parentPath string,
+	parallel int,
+	sliceSize int64,
+	ef *ExtraFile,
+) (*Buffer, string, string, error) {
 	bs2 := bstore.NewBlockstore(dss.MutexWrap(datastore.NewMapDatastore()))
 	dagServ := dag.NewDAGService(blockservice.New(bs2, offline.Exchange(bs2)))
 
@@ -209,12 +219,17 @@ func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath string, pa
 		// log.Infof("file name: %s, file size: %d, item size: %d, seek-start:%d, seek-end:%d", item.Name, item.Info.Size(), item.SeekEnd-item.SeekStart, item.SeekStart, item.SeekEnd)
 		dirStr := path.Dir(item.Path)
 		parentPath = path.Clean(parentPath)
+		parentPath2 := path.Clean(ef.path)
+		// log.Infof("parentPath: %s, parentPath2: %s, item.Path: %s, clean path: %v, dirStr: %s", parentPath, parentPath2, item.Path, path.Clean(item.Path), dirStr)
 		// when parent path equal target path, and the parent path is also a file path
-		if parentPath == path.Clean(item.Path) {
+		if parentPath == path.Clean(item.Path) || parentPath2 == path.Clean(item.Path) {
 			dirStr = ""
 		} else if parentPath != "" && strings.HasPrefix(dirStr, parentPath) {
 			dirStr = dirStr[len(parentPath):]
+		} else if parentPath2 != "" && strings.HasPrefix(dirStr, parentPath2) {
+			dirStr = dirStr[len(parentPath2):]
 		}
+		// log.Infof("dirStr: %s", dirStr)
 		dirStr = strings.TrimPrefix(dirStr, "/")
 
 		var dirList []string
@@ -231,8 +246,8 @@ func buildIpldGraph(ctx context.Context, fileList []Finfo, parentPath string, pa
 			dirNodeMap[rootKey].AddNodeLink(item.Name, fileNode)
 			continue
 		}
-		// log.Info(item.Path)
-		// log.Info(dirList)
+		// log.Info("path:", item.Path)
+		// log.Info("dir list:", dirList)
 		i := len(dirList) - 1
 		for ; i >= 0; i-- {
 			// get dirNodeMap by index
@@ -568,4 +583,57 @@ func PadCar(w io.Writer, carSize int64) error {
 	}
 
 	return nil
+}
+
+var nameReg = regexp.MustCompile(`^[^_]+_[^_]+\.[^_]+$`)
+
+func tryRenameFileName(fis []Finfo) []Finfo {
+	rename := func(in string) string {
+		parts := strings.Split(in, "_")
+		if len(parts) < 2 {
+			return in
+		}
+		arr := strings.Split(parts[1], ".")
+		if len(arr) < 2 {
+			return in
+		}
+		// 重新拼接文件名
+		return fmt.Sprintf("%s_%s.%s", parts[0], RandomLetters(), arr[1])
+	}
+
+	for i, fi := range fis {
+		// log.Infof("try rename file: %s", fi.Name)
+		if nameReg.MatchString(fi.Name) {
+			newName := rename(fi.Name)
+			fis[i].Name = newName
+			// log.Infof("rename file name %s to %s", fi.Name, newName)
+		}
+	}
+
+	return fis
+}
+
+// RandomLetters 从26个英文字母中随机挑选6到8个字母
+func RandomLetters() string {
+	// 设置随机种子
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// 定义字母表
+	letters := []rune{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}
+
+	numLetters := 8
+	selected := make([]rune, 0, numLetters)
+
+	// 随机打乱字母表
+	for i := len(letters) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		letters[i], letters[j] = letters[j], letters[i]
+	}
+
+	// 选取前numLetters个字母
+	for i := 0; i < numLetters; i++ {
+		selected = append(selected, letters[i])
+	}
+
+	return string(selected)
 }

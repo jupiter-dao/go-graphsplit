@@ -69,6 +69,16 @@ payload_cid,filename,piece_cid,piece_size,detail
 ba...,graph-slice-name.car,baga...,16646144,inner-structure-json
 ```
 
+Config:
+
+[example](https://github.com/ipfs-force-community/go-graphsplit/blob/main/config/example.toml)
+
+config 包含三个字段：
+
+* SliceSize piece 源文件大小，默认是 18Gib
+* ExtraFilePath 指向存储了图片、视频等文件的目录
+* ExtraFileSizeInOnePiece 每个 piece 文件包含图片和视频等文件的大小，例如：500Gib
+
 Import car file to IPFS: 
 ```sh
 ipfs dag import /path/to/car-dir/car-file

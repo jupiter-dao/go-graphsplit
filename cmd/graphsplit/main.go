@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/docker/go-units"
 	"github.com/filedrive-team/go-graphsplit"
 	"github.com/filedrive-team/go-graphsplit/config"
 	"github.com/filedrive-team/go-graphsplit/dataset"
@@ -66,7 +68,7 @@ var chunkCmd = &cli.Command{
 		},
 		&cli.BoolFlag{
 			Name:  "calc-commp",
-			Value: false,
+			Value: true,
 			Usage: "create a mainfest.csv in car-dir to save mapping of data-cids, slice names, piece-cids and piece-sizes",
 		},
 		&cli.BoolFlag{
@@ -104,12 +106,13 @@ var chunkCmd = &cli.Command{
 		if cfgPath == "" {
 			return fmt.Errorf("config file path is required")
 		}
-		log.Infoln("config file path: ", cfgPath)
 
 		cfg, err := config.LoadConfig(cfgPath)
 		if err != nil {
-			return fmt.Errorf("failed to load config file: %v", err)
+			return fmt.Errorf("failed to load config file(%s): %v", cfgPath, err)
 		}
+		log.Infof("config file: %+v", cfg)
+
 		log.Infof("old slice size: %d", cfg.SliceSize)
 		cfg.SliceSize++
 		sliceSize := cfg.SliceSize
@@ -122,7 +125,26 @@ var chunkCmd = &cli.Command{
 			return fmt.Errorf("failed to save config file: %v", err)
 		}
 
-		targetPath := c.Args().First()
+		var extraFileSliceSize int64
+		if len(cfg.ExtraFilePath) != 0 {
+			if cfg.ExtraFileSizeInOnePiece == "" {
+				return fmt.Errorf("extra file size in one piece is required when extra file path is set")
+			}
+			extraFileSliceSize, err = units.RAMInBytes(cfg.ExtraFileSizeInOnePiece)
+			if err != nil {
+				return fmt.Errorf("failed to parse real file size: %v", err)
+			}
+		}
+		if sliceSize+int(extraFileSliceSize) > 32*graphsplit.Gib {
+			return fmt.Errorf("slice size %d + extra file slice size %d exceeds 32 GiB", sliceSize, extraFileSliceSize)
+		}
+		log.Infof("extra file slice size: %d", extraFileSliceSize)
+		rf, err := graphsplit.NewRealFile(strings.TrimSuffix(cfg.ExtraFilePath, "/"), int64(extraFileSliceSize), int64(sliceSize))
+		if err != nil {
+			return err
+		}
+
+		targetPath := strings.TrimSuffix(c.Args().First(), "/")
 		var cb graphsplit.GraphBuildCallback
 		if c.Bool("calc-commp") {
 			cb = graphsplit.CommPCallback(carDir, c.Bool("rename"), c.Bool("add-padding"))
@@ -136,11 +158,11 @@ var chunkCmd = &cli.Command{
 		fmt.Println("loop: ", loop)
 		if !loop {
 			fmt.Println("chunking once...")
-			return graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb)
+			return graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb, rf)
 		}
 		fmt.Println("loop chunking...")
 		for {
-			err = graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb)
+			err = graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb, rf)
 			if err != nil {
 				return fmt.Errorf("failed to chunk: %v", err)
 			}
