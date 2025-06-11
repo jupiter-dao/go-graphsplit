@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -581,4 +583,57 @@ func PadCar(w io.Writer, carSize int64) error {
 	}
 
 	return nil
+}
+
+var nameReg = regexp.MustCompile(`^[^_]+_[^_]+\.[^_]+$`)
+
+func tryRenameFileName(fis []Finfo) []Finfo {
+	rename := func(in string) string {
+		parts := strings.Split(in, "_")
+		if len(parts) < 2 {
+			return in
+		}
+		arr := strings.Split(parts[1], ".")
+		if len(arr) < 2 {
+			return in
+		}
+		// 重新拼接文件名
+		return fmt.Sprintf("%s_%s.%s", parts[0], RandomLetters(), arr[1])
+	}
+
+	for i, fi := range fis {
+		// log.Infof("try rename file: %s", fi.Name)
+		if nameReg.MatchString(fi.Name) {
+			newName := rename(fi.Name)
+			fis[i].Name = newName
+			// log.Infof("rename file name %s to %s", fi.Name, newName)
+		}
+	}
+
+	return fis
+}
+
+// RandomLetters 从26个英文字母中随机挑选6到8个字母
+func RandomLetters() string {
+	// 设置随机种子
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// 定义字母表
+	letters := []rune{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}
+
+	numLetters := 8
+	selected := make([]rune, 0, numLetters)
+
+	// 随机打乱字母表
+	for i := len(letters) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		letters[i], letters[j] = letters[j], letters[i]
+	}
+
+	// 选取前numLetters个字母
+	for i := 0; i < numLetters; i++ {
+		selected = append(selected, letters[i])
+	}
+
+	return string(selected)
 }

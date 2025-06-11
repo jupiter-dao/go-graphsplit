@@ -36,6 +36,7 @@ func (rf *ExtraFile) walk() {
 	for item := range files {
 		rf.files = append(rf.files, item)
 	}
+	rf.files = tryRenameFileName(rf.files)
 }
 
 func (rf *ExtraFile) getFiles() []Finfo {

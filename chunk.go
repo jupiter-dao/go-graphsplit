@@ -186,6 +186,8 @@ func Chunk(ctx context.Context,
 	}
 	files := GetFileListAsync(args)
 	for item := range files {
+		item := tryRenameFileName([]Finfo{item})[0]
+		// log.Infof("name: %s", item.Name)
 		fileSize := item.Info.Size()
 		switch {
 		case cumuSize+fileSize < partSliceSize:
