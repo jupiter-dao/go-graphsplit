@@ -214,13 +214,14 @@ func Chunk(ctx context.Context,
 			var seekEnd int64 = seekStart + firstCut - 1
 			log.Infof("first cut %d, seek start at %d, end at %d", firstCut, seekStart, seekEnd)
 			log.Infof("----------------")
-			graphFiles = append(graphFiles, Finfo{
+			fi := Finfo{
 				Path:      item.Path,
 				Name:      fmt.Sprintf("%s.%08d", item.Info.Name(), fileSliceCount),
 				Info:      item.Info,
 				SeekStart: seekStart,
 				SeekEnd:   seekEnd,
-			})
+			}
+			graphFiles = append(graphFiles, tryRenameFileName([]Finfo{fi})...)
 			fileSliceCount++
 			// todo build ipld from graphFiles
 			BuildIpldGraph(ctx, append(ef.getFiles(), graphFiles...), GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb, expectSliceSize, ef)
@@ -239,13 +240,14 @@ func Chunk(ctx context.Context,
 				log.Infof("following cut %d, seek start at %d, end at %d", seekEnd-seekStart+1, seekStart, seekEnd)
 				log.Infof("----------------")
 				cumuSize += seekEnd - seekStart + 1
-				graphFiles = append(graphFiles, Finfo{
+				fi := Finfo{
 					Path:      item.Path,
 					Name:      fmt.Sprintf("%s.%08d", item.Info.Name(), fileSliceCount),
 					Info:      item.Info,
 					SeekStart: seekStart,
 					SeekEnd:   seekEnd,
-				})
+				}
+				graphFiles = append(graphFiles, tryRenameFileName([]Finfo{fi})...)
 				fileSliceCount++
 				if seekEnd-seekStart == partSliceSize-1 {
 					// todo build ipld from graphFiles
