@@ -598,15 +598,24 @@ func tryRenameFileName(fis []Finfo) []Finfo {
 			return in
 		}
 		// 重新拼接文件名
-		return fmt.Sprintf("%s_%s.%s", parts[0], RandomLetters(), arr[1])
+		return fmt.Sprintf("%s_%s.%s", parts[0], RandomLetters(), strings.Join(arr[1:], "."))
 	}
 
 	for i, fi := range fis {
-		// log.Infof("try rename file: %s", fi.Name)
+		log.Infof("try rename file: %s", fi.Name)
 		if nameReg.MatchString(fi.Name) {
 			newName := rename(fi.Name)
 			fis[i].Name = newName
 			// log.Infof("rename file name %s to %s", fi.Name, newName)
+		}
+		// graphsplit_sss.png.00000001
+		arr := strings.Split(fi.Name, ".")
+		if len(arr) == 3 {
+			if nameReg.MatchString(arr[0] + "." + arr[1]) {
+				newName := rename(fi.Name)
+				fis[i].Name = newName
+				// log.Infof("rename file name %s to %s", fi.Name, newName)
+			}
 		}
 	}
 
