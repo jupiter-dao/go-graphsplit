@@ -39,7 +39,7 @@ func (rf *ExtraFile) walk(randomRenameSourceFile bool) {
 	if randomRenameSourceFile {
 		rf.files = tryRenameFileName(rf.files)
 	}
-
+	Shuffle(rf.files)
 }
 
 func (rf *ExtraFile) getFiles() []Finfo {
