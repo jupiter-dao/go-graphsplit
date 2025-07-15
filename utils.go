@@ -646,3 +646,15 @@ func RandomLetters() string {
 
 	return string(selected)
 }
+
+// Shuffle 使用泛型和自定义种子随机打乱任意类型的切片
+func Shuffle[T any](arr []T) {
+	s := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(s)
+
+	// Fisher-Yates 洗牌算法
+	for i := len(arr) - 1; i > 0; i-- {
+		j := r.Intn(i + 1)
+		arr[i], arr[j] = arr[j], arr[i]
+	}
+}

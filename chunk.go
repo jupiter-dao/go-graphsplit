@@ -164,6 +164,7 @@ func Chunk(ctx context.Context,
 	cb GraphBuildCallback,
 	ef *ExtraFile,
 	randomRenameSourceFile bool,
+	randomSelectFile bool,
 ) error {
 	var cumuSize int64 = 0
 	graphSliceCount := 0
@@ -185,8 +186,16 @@ func Chunk(ctx context.Context,
 		log.Warn("Empty folder or file!")
 		return nil
 	}
+	var allFiles []Finfo
 	files := GetFileListAsync(args)
 	for item := range files {
+		allFiles = append(allFiles, item)
+	}
+	log.Infof("total files: %d", len(allFiles))
+
+	Shuffle(allFiles)
+
+	for _, item := range allFiles {
 		item := item
 		if randomRenameSourceFile {
 			item = tryRenameFileName([]Finfo{item})[0]
