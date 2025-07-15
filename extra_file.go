@@ -15,7 +15,7 @@ type ExtraFile struct {
 	pieceRawSize int64
 }
 
-func NewRealFile(path string, sliceSize int64, pieceRawSize int64) (*ExtraFile, error) {
+func NewRealFile(path string, sliceSize int64, pieceRawSize int64, randomRenameSourceFile bool) (*ExtraFile, error) {
 	rf := &ExtraFile{path: path, sliceSize: sliceSize, pieceRawSize: pieceRawSize}
 	if path != "" {
 		finfo, err := os.Stat(path)
@@ -25,18 +25,21 @@ func NewRealFile(path string, sliceSize int64, pieceRawSize int64) (*ExtraFile, 
 		if !finfo.IsDir() {
 			return nil, fmt.Errorf("the path %s is not a directory", path)
 		}
-		rf.walk()
+		rf.walk(randomRenameSourceFile)
 	}
 
 	return rf, nil
 }
 
-func (rf *ExtraFile) walk() {
+func (rf *ExtraFile) walk(randomRenameSourceFile bool) {
 	files := GetFileListAsync([]string{rf.path})
 	for item := range files {
 		rf.files = append(rf.files, item)
 	}
-	rf.files = tryRenameFileName(rf.files)
+	if randomRenameSourceFile {
+		rf.files = tryRenameFileName(rf.files)
+	}
+
 }
 
 func (rf *ExtraFile) getFiles() []Finfo {

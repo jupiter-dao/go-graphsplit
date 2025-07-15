@@ -77,6 +77,11 @@ var chunkCmd = &cli.Command{
 			Usage: "rename carfile to piece",
 		},
 		&cli.BoolFlag{
+			Name:  "random-rename-source-file",
+			Value: false,
+			Usage: "random rename source file name",
+		},
+		&cli.BoolFlag{
 			Name:  "add-padding",
 			Value: false,
 			Usage: "add padding to carfile in order to convert it to piece file",
@@ -98,6 +103,7 @@ var chunkCmd = &cli.Command{
 		parentPath := c.String("parent-path")
 		carDir := c.String("car-dir")
 		graphName := c.String("graph-name")
+		randomRenameSourceFile := c.Bool("random-rename-source-file")
 		if !graphsplit.ExistDir(carDir) {
 			return fmt.Errorf("the path of car-dir does not exist")
 		}
@@ -138,8 +144,8 @@ var chunkCmd = &cli.Command{
 		if sliceSize+int(extraFileSliceSize) > 32*graphsplit.Gib {
 			return fmt.Errorf("slice size %d + extra file slice size %d exceeds 32 GiB", sliceSize, extraFileSliceSize)
 		}
-		log.Infof("extra file slice size: %d", extraFileSliceSize)
-		rf, err := graphsplit.NewRealFile(strings.TrimSuffix(cfg.ExtraFilePath, "/"), int64(extraFileSliceSize), int64(sliceSize))
+		log.Infof("extra file slice size: %d, random rename source file: %v", extraFileSliceSize, randomRenameSourceFile)
+		rf, err := graphsplit.NewRealFile(strings.TrimSuffix(cfg.ExtraFilePath, "/"), int64(extraFileSliceSize), int64(sliceSize), randomRenameSourceFile)
 		if err != nil {
 			return err
 		}
@@ -158,11 +164,11 @@ var chunkCmd = &cli.Command{
 		fmt.Println("loop: ", loop)
 		if !loop {
 			fmt.Println("chunking once...")
-			return graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb, rf)
+			return graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb, rf, randomRenameSourceFile)
 		}
 		fmt.Println("loop chunking...")
 		for {
-			err = graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb, rf)
+			err = graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb, rf, randomRenameSourceFile)
 			if err != nil {
 				return fmt.Errorf("failed to chunk: %v", err)
 			}
