@@ -163,6 +163,7 @@ func Chunk(ctx context.Context,
 	parallel int,
 	cb GraphBuildCallback,
 	ef *ExtraFile,
+	randomRenameSourceFile bool,
 ) error {
 	var cumuSize int64 = 0
 	graphSliceCount := 0
@@ -186,7 +187,10 @@ func Chunk(ctx context.Context,
 	}
 	files := GetFileListAsync(args)
 	for item := range files {
-		item := tryRenameFileName([]Finfo{item})[0]
+		item := item
+		if randomRenameSourceFile {
+			item = tryRenameFileName([]Finfo{item})[0]
+		}
 		// log.Infof("name: %s", item.Name)
 		fileSize := item.Info.Size()
 		switch {
@@ -221,7 +225,11 @@ func Chunk(ctx context.Context,
 				SeekStart: seekStart,
 				SeekEnd:   seekEnd,
 			}
-			graphFiles = append(graphFiles, tryRenameFileName([]Finfo{fi})...)
+			if randomRenameSourceFile {
+				graphFiles = append(graphFiles, tryRenameFileName([]Finfo{fi})...)
+			} else {
+				graphFiles = append(graphFiles, fi)
+			}
 			fileSliceCount++
 			// todo build ipld from graphFiles
 			BuildIpldGraph(ctx, append(ef.getFiles(), graphFiles...), GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb, expectSliceSize, ef)
@@ -247,7 +255,12 @@ func Chunk(ctx context.Context,
 					SeekStart: seekStart,
 					SeekEnd:   seekEnd,
 				}
-				graphFiles = append(graphFiles, tryRenameFileName([]Finfo{fi})...)
+				if randomRenameSourceFile {
+					graphFiles = append(graphFiles, tryRenameFileName([]Finfo{fi})...)
+				} else {
+					graphFiles = append(graphFiles, fi)
+				}
+
 				fileSliceCount++
 				if seekEnd-seekStart == partSliceSize-1 {
 					// todo build ipld from graphFiles
