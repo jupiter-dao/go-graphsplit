@@ -103,7 +103,6 @@ var chunkCmd = &cli.Command{
 		&cli.BoolFlag{
 			Name:  "skip-filename",
 			Usage: "manifest csv detail not contain filename",
-			Value: true,
 		},
 	},
 	ArgsUsage: "<input path>",

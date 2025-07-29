@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -139,7 +140,7 @@ func BuildIpldGraph(ctx context.Context,
 	params *ChunkParams,
 ) {
 	buf, payloadCid, fsDetail, err := buildIpldGraph(ctx, fileList, params.ParentPath, params.Parallel,
-		params.ExpectSliceSize, params.Ef)
+		params.ExpectSliceSize, params.Ef, params.SkipFilename)
 	if err != nil {
 		// log.Fatal(err)
 		params.Cb.OnError(err)
@@ -154,6 +155,7 @@ func buildIpldGraph(ctx context.Context,
 	parallel int,
 	sliceSize int64,
 	ef *ExtraFile,
+	skipFilename bool,
 ) (*Buffer, string, string, error) {
 	bs2 := bstore.NewBlockstore(dss.MutexWrap(datastore.NewMapDatastore()))
 	dagServ := dag.NewDAGService(blockservice.New(bs2, offline.Exchange(bs2)))
@@ -325,6 +327,30 @@ func buildIpldGraph(ctx context.Context,
 		return nil, "", "", err
 	}
 	log.Info("++++++++++++ finished to build ipld +++++++++++++")
+
+	if skipFilename {
+		type path struct {
+			Path string `json:"path"`
+		}
+
+		var list []path
+		seen := make(map[string]struct{})
+		for _, f := range sfis {
+			dir := filepath.Dir(f.Path)
+			if dir == "" || dir == "." || dir == "/" {
+				continue
+			}
+			if _, ok := seen[dir]; !ok {
+				seen[dir] = struct{}{}
+				list = append(list, path{Path: dir})
+			}
+		}
+
+		fileInfo, err = json.Marshal(list)
+		if err != nil {
+			return nil, "", "", err
+		}
+	}
 
 	return buf, rootNode.Cid().String(), string(fileInfo), nil
 }
