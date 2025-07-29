@@ -15,7 +15,7 @@ type ExtraFile struct {
 	pieceRawSize int64
 }
 
-func NewRealFile(path string, sliceSize int64, pieceRawSize int64, randomRenameSourceFile bool) (*ExtraFile, error) {
+func NewExtraFile(path string, sliceSize int64, pieceRawSize int64, randomRenameSourceFile bool) (*ExtraFile, error) {
 	rf := &ExtraFile{path: path, sliceSize: sliceSize, pieceRawSize: pieceRawSize}
 	if path != "" {
 		finfo, err := os.Stat(path)

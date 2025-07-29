@@ -100,6 +100,10 @@ var chunkCmd = &cli.Command{
 			Usage: "random select file to chunk",
 			Value: true,
 		},
+		&cli.BoolFlag{
+			Name:  "skip-filename",
+			Usage: "manifest csv detail not contain filename",
+		},
 	},
 	ArgsUsage: "<input path>",
 	Action: func(c *cli.Context) error {
@@ -110,6 +114,7 @@ var chunkCmd = &cli.Command{
 		graphName := c.String("graph-name")
 		randomRenameSourceFile := c.Bool("random-rename-source-file")
 		randomSelectFile := c.Bool("random-select-file")
+		skipFilename := c.Bool("skip-filename")
 		if !graphsplit.ExistDir(carDir) {
 			return fmt.Errorf("the path of car-dir does not exist")
 		}
@@ -151,7 +156,8 @@ var chunkCmd = &cli.Command{
 			return fmt.Errorf("slice size %d + extra file slice size %d exceeds 32 GiB", sliceSize, extraFileSliceSize)
 		}
 		log.Infof("extra file slice size: %d, random rename source file: %v, random select file: %v", extraFileSliceSize, randomRenameSourceFile, randomSelectFile)
-		rf, err := graphsplit.NewRealFile(strings.TrimSuffix(cfg.ExtraFilePath, "/"), int64(extraFileSliceSize), int64(sliceSize), randomRenameSourceFile)
+		log.Infof("skip filename: %v", skipFilename)
+		ef, err := graphsplit.NewExtraFile(strings.TrimSuffix(cfg.ExtraFilePath, "/"), int64(extraFileSliceSize), int64(sliceSize), randomRenameSourceFile)
 		if err != nil {
 			return err
 		}
@@ -166,15 +172,29 @@ var chunkCmd = &cli.Command{
 			cb = graphsplit.ErrCallback()
 		}
 
+		params := graphsplit.ChunkParams{
+			ExpectSliceSize:        int64(sliceSize),
+			ParentPath:             parentPath,
+			TargetPath:             targetPath,
+			CarDir:                 carDir,
+			GraphName:              graphName,
+			Parallel:               int(parallel),
+			Cb:                     cb,
+			Ef:                     ef,
+			RandomRenameSourceFile: randomRenameSourceFile,
+			RandomSelectFile:       randomSelectFile,
+			SkipFilename:           skipFilename,
+		}
+
 		loop := c.Bool("loop")
 		fmt.Println("loop: ", loop)
 		if !loop {
 			fmt.Println("chunking once...")
-			return graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb, rf, randomRenameSourceFile, randomSelectFile)
+			return graphsplit.Chunk(ctx, &params)
 		}
 		fmt.Println("loop chunking...")
 		for {
-			err = graphsplit.Chunk(ctx, int64(sliceSize), parentPath, targetPath, carDir, graphName, int(parallel), cb, rf, randomRenameSourceFile, randomSelectFile)
+			err = graphsplit.Chunk(ctx, &params)
 			if err != nil {
 				return fmt.Errorf("failed to chunk: %v", err)
 			}

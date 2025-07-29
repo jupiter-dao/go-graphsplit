@@ -154,34 +154,37 @@ func ErrCallback() GraphBuildCallback {
 	return &errCallback{}
 }
 
-func Chunk(ctx context.Context,
-	expectSliceSize int64,
-	parentPath,
-	targetPath,
-	carDir,
-	graphName string,
-	parallel int,
-	cb GraphBuildCallback,
-	ef *ExtraFile,
-	randomRenameSourceFile bool,
-	randomSelectFile bool,
-) error {
+type ChunkParams struct {
+	ExpectSliceSize        int64
+	ParentPath             string
+	TargetPath             string
+	CarDir                 string
+	GraphName              string
+	Parallel               int
+	Cb                     GraphBuildCallback
+	Ef                     *ExtraFile
+	RandomRenameSourceFile bool
+	RandomSelectFile       bool
+	SkipFilename           bool
+}
+
+func Chunk(ctx context.Context, params *ChunkParams) error {
 	var cumuSize int64 = 0
 	graphSliceCount := 0
 	graphFiles := make([]Finfo, 0)
-	if expectSliceSize == 0 {
+	if params.ExpectSliceSize == 0 {
 		return fmt.Errorf("slice size has been set as 0")
 	}
-	if parallel <= 0 {
+	if params.Parallel <= 0 {
 		return fmt.Errorf("parallel has to be greater than 0")
 	}
-	if parentPath == "" {
-		parentPath = targetPath
+	if params.ParentPath == "" {
+		params.ParentPath = params.TargetPath
 	}
 
-	partSliceSize := expectSliceSize - ef.sliceSize
-	args := []string{targetPath}
-	sliceTotal := GetGraphCount(args, expectSliceSize)
+	partSliceSize := params.ExpectSliceSize - params.Ef.sliceSize
+	args := []string{params.TargetPath}
+	sliceTotal := GetGraphCount(args, params.ExpectSliceSize)
 	if sliceTotal == 0 {
 		log.Warn("Empty folder or file!")
 		return nil
@@ -197,7 +200,7 @@ func Chunk(ctx context.Context,
 
 	for _, item := range allFiles {
 		item := item
-		if randomRenameSourceFile {
+		if params.RandomRenameSourceFile {
 			item = tryRenameFileName([]Finfo{item})[0]
 		}
 		// log.Infof("name: %s", item.Name)
@@ -210,9 +213,9 @@ func Chunk(ctx context.Context,
 			cumuSize += fileSize
 			graphFiles = append(graphFiles, item)
 			// todo build ipld from graphFiles
-			BuildIpldGraph(ctx, append(ef.getFiles(), graphFiles...), GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb, expectSliceSize, ef)
+			BuildIpldGraph(ctx, append(params.Ef.getFiles(), graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
 			log.Infof("cumu-size: %d", cumuSize)
-			log.Infof("%s", GenGraphName(graphName, graphSliceCount, sliceTotal))
+			log.Infof("%s", GenGraphName(params.GraphName, graphSliceCount, sliceTotal))
 			log.Infof("=================")
 			cumuSize = 0
 			graphFiles = make([]Finfo, 0)
@@ -234,16 +237,16 @@ func Chunk(ctx context.Context,
 				SeekStart: seekStart,
 				SeekEnd:   seekEnd,
 			}
-			if randomRenameSourceFile {
+			if params.RandomRenameSourceFile {
 				graphFiles = append(graphFiles, tryRenameFileName([]Finfo{fi})...)
 			} else {
 				graphFiles = append(graphFiles, fi)
 			}
 			fileSliceCount++
 			// todo build ipld from graphFiles
-			BuildIpldGraph(ctx, append(ef.getFiles(), graphFiles...), GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb, expectSliceSize, ef)
+			BuildIpldGraph(ctx, append(params.Ef.getFiles(), graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
 			log.Infof("cumu-size: %d", cumuSize+firstCut)
-			log.Infof("%s", GenGraphName(graphName, graphSliceCount, sliceTotal))
+			log.Infof("%s", GenGraphName(params.GraphName, graphSliceCount, sliceTotal))
 			log.Infof("=================")
 			cumuSize = 0
 			graphFiles = make([]Finfo, 0)
@@ -264,7 +267,7 @@ func Chunk(ctx context.Context,
 					SeekStart: seekStart,
 					SeekEnd:   seekEnd,
 				}
-				if randomRenameSourceFile {
+				if params.RandomRenameSourceFile {
 					graphFiles = append(graphFiles, tryRenameFileName([]Finfo{fi})...)
 				} else {
 					graphFiles = append(graphFiles, fi)
@@ -273,9 +276,9 @@ func Chunk(ctx context.Context,
 				fileSliceCount++
 				if seekEnd-seekStart == partSliceSize-1 {
 					// todo build ipld from graphFiles
-					BuildIpldGraph(ctx, append(ef.getFiles(), graphFiles...), GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb, expectSliceSize, ef)
+					BuildIpldGraph(ctx, append(params.Ef.getFiles(), graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
 					log.Infof("cumu-size: %d", partSliceSize)
-					log.Infof("%s", GenGraphName(graphName, graphSliceCount, sliceTotal))
+					log.Infof("%s", GenGraphName(params.GraphName, graphSliceCount, sliceTotal))
 					log.Infof("=================")
 					cumuSize = 0
 					graphFiles = make([]Finfo, 0)
@@ -286,9 +289,9 @@ func Chunk(ctx context.Context,
 	}
 	if cumuSize > 0 {
 		// todo build ipld from graphFiles
-		BuildIpldGraph(ctx, append(ef.getFiles(), graphFiles...), GenGraphName(graphName, graphSliceCount, sliceTotal), parentPath, carDir, parallel, cb, expectSliceSize, ef)
+		BuildIpldGraph(ctx, append(params.Ef.getFiles(), graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
 		log.Infof("cumu-size: %d", cumuSize)
-		log.Infof("%s", GenGraphName(graphName, graphSliceCount, sliceTotal))
+		log.Infof("%s", GenGraphName(params.GraphName, graphSliceCount, sliceTotal))
 		log.Infof("=================")
 	}
 	return nil
