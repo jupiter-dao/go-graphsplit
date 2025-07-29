@@ -135,21 +135,17 @@ func (b *FSBuilder) getNodeByLink(ln *ipld.Link) (fn fsNode, err error) {
 
 func BuildIpldGraph(ctx context.Context,
 	fileList []Finfo,
-	graphName,
-	parentPath,
-	carDir string,
-	parallel int,
-	cb GraphBuildCallback,
-	sliceSize int64,
-	ef *ExtraFile,
+	graphName string,
+	params *ChunkParams,
 ) {
-	buf, payloadCid, fsDetail, err := buildIpldGraph(ctx, fileList, parentPath, parallel, sliceSize, ef)
+	buf, payloadCid, fsDetail, err := buildIpldGraph(ctx, fileList, params.ParentPath, params.Parallel,
+		params.ExpectSliceSize, params.Ef)
 	if err != nil {
 		// log.Fatal(err)
-		cb.OnError(err)
+		params.Cb.OnError(err)
 		return
 	}
-	cb.OnSuccess(buf, graphName, payloadCid, fsDetail)
+	params.Cb.OnSuccess(buf, graphName, payloadCid, fsDetail)
 }
 
 func buildIpldGraph(ctx context.Context,
