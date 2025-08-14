@@ -340,11 +340,7 @@ func buildIpldGraph(ctx context.Context,
 	log.Info("++++++++++++ finished to build ipld +++++++++++++")
 
 	if skipFilename {
-		type path struct {
-			Path string `json:"path"`
-		}
-
-		var list []path
+		var list []SimplestFileInfo
 		seen := make(map[string]struct{})
 		for _, f := range sfis {
 			dir := filepath.Dir(f.Path)
@@ -353,7 +349,7 @@ func buildIpldGraph(ctx context.Context,
 			}
 			if _, ok := seen[dir]; !ok {
 				seen[dir] = struct{}{}
-				list = append(list, path{Path: dir})
+				list = append(list, SimplestFileInfo{Path: dir})
 			}
 		}
 
