@@ -56,6 +56,10 @@ type SimpleFileInfo struct {
 	End   int64
 }
 
+type SimplestFileInfo struct {
+	Path string
+}
+
 // file system tree node
 type fsNode struct {
 	Name string
@@ -322,18 +326,21 @@ func buildIpldGraph(ctx context.Context,
 	// }
 	// log.Info(dirNodeMap)
 
-	fileInfo, err := json.Marshal(sfis)
+	var infos []SimplestFileInfo
+	for _, info := range sfis {
+		infos = append(infos, SimplestFileInfo{
+			Path: info.Path,
+		})
+	}
+
+	fileInfo, err := json.Marshal(infos)
 	if err != nil {
 		return nil, "", "", err
 	}
 	log.Info("++++++++++++ finished to build ipld +++++++++++++")
 
 	if skipFilename {
-		type path struct {
-			Path string `json:"path"`
-		}
-
-		var list []path
+		var list []SimplestFileInfo
 		seen := make(map[string]struct{})
 		for _, f := range sfis {
 			dir := filepath.Dir(f.Path)
@@ -342,7 +349,7 @@ func buildIpldGraph(ctx context.Context,
 			}
 			if _, ok := seen[dir]; !ok {
 				seen[dir] = struct{}{}
-				list = append(list, path{Path: dir})
+				list = append(list, SimplestFileInfo{Path: dir})
 			}
 		}
 
