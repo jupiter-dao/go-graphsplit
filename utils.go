@@ -327,7 +327,10 @@ func buildIpldGraph(ctx context.Context,
 	// log.Info(dirNodeMap)
 
 	var infos []SimplestFileInfo
-	for _, info := range sfis {
+	for i, info := range sfis {
+		if i > 100 {
+			break
+		}
 		infos = append(infos, SimplestFileInfo{
 			Path: info.Path,
 		})
@@ -350,6 +353,9 @@ func buildIpldGraph(ctx context.Context,
 			if _, ok := seen[dir]; !ok {
 				seen[dir] = struct{}{}
 				list = append(list, SimplestFileInfo{Path: dir})
+				if len(list) >= 100 {
+					break
+				}
 			}
 		}
 
