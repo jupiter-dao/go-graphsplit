@@ -155,14 +155,15 @@ func ErrCallback() GraphBuildCallback {
 }
 
 type ChunkParams struct {
-	ExpectSliceSize        int64
-	ParentPath             string
-	TargetPath             string
-	CarDir                 string
-	GraphName              string
-	Parallel               int
-	Cb                     GraphBuildCallback
-	Ef                     *ExtraFile
+	ExpectSliceSize int64
+	ParentPath      string
+	TargetPath      string
+	CarDir          string
+	GraphName       string
+	Parallel        int
+	Cb              GraphBuildCallback
+	//Ef                     *ExtraFile // 使用一个文件目录做种子
+	Vf                     *VideoFile // 使用video做种子文件
 	RandomRenameSourceFile bool
 	RandomSelectFile       bool
 	SkipFilename           bool
@@ -182,7 +183,7 @@ func Chunk(ctx context.Context, params *ChunkParams) error {
 		params.ParentPath = params.TargetPath
 	}
 
-	partSliceSize := params.ExpectSliceSize - params.Ef.sliceSize
+	partSliceSize := params.ExpectSliceSize - params.Vf.sliceSize
 	args := []string{params.TargetPath}
 	sliceTotal := GetGraphCount(args, params.ExpectSliceSize)
 	if sliceTotal == 0 {
@@ -197,7 +198,7 @@ func Chunk(ctx context.Context, params *ChunkParams) error {
 	log.Infof("total files: %d", len(allFiles))
 
 	Shuffle(allFiles)
-
+	var videoPath string
 	for _, item := range allFiles {
 		item := item
 		if params.RandomRenameSourceFile {
@@ -213,9 +214,19 @@ func Chunk(ctx context.Context, params *ChunkParams) error {
 			cumuSize += fileSize
 			graphFiles = append(graphFiles, item)
 			// todo build ipld from graphFiles
-			BuildIpldGraph(ctx, append(params.Ef.getFiles(), graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
+			//video
+			videos := params.Vf.getFiles()
+			if len(videos) != 1 {
+				break
+			}
+			videoPath = videos[0].Path
+			BuildIpldGraph(ctx, append(videos, graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
 			log.Infof("cumu-size: %d", cumuSize)
 			log.Infof("%s", GenGraphName(params.GraphName, graphSliceCount, sliceTotal))
+			err := os.Remove(videoPath)
+			if err != nil {
+				log.Warnf("remove video path:%+v : err %s", videoPath, err.Error())
+			}
 			log.Infof("=================")
 			cumuSize = 0
 			graphFiles = make([]Finfo, 0)
@@ -244,9 +255,19 @@ func Chunk(ctx context.Context, params *ChunkParams) error {
 			}
 			fileSliceCount++
 			// todo build ipld from graphFiles
-			BuildIpldGraph(ctx, append(params.Ef.getFiles(), graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
+			//video
+			videos := params.Vf.getFiles()
+			if len(videos) != 1 {
+				break
+			}
+			videoPath = videos[0].Path
+			BuildIpldGraph(ctx, append(videos, graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
 			log.Infof("cumu-size: %d", cumuSize+firstCut)
 			log.Infof("%s", GenGraphName(params.GraphName, graphSliceCount, sliceTotal))
+			err := os.Remove(videoPath)
+			if err != nil {
+				log.Warnf("remove video path:%+v : err %s", videoPath, err.Error())
+			}
 			log.Infof("=================")
 			cumuSize = 0
 			graphFiles = make([]Finfo, 0)
@@ -276,7 +297,7 @@ func Chunk(ctx context.Context, params *ChunkParams) error {
 				fileSliceCount++
 				if seekEnd-seekStart == partSliceSize-1 {
 					// todo build ipld from graphFiles
-					BuildIpldGraph(ctx, append(params.Ef.getFiles(), graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
+					BuildIpldGraph(ctx, append(videos, graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
 					log.Infof("cumu-size: %d", partSliceSize)
 					log.Infof("%s", GenGraphName(params.GraphName, graphSliceCount, sliceTotal))
 					log.Infof("=================")
@@ -289,9 +310,18 @@ func Chunk(ctx context.Context, params *ChunkParams) error {
 	}
 	if cumuSize > 0 {
 		// todo build ipld from graphFiles
-		BuildIpldGraph(ctx, append(params.Ef.getFiles(), graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
+		videos := params.Vf.getFiles()
+		if len(videos) != 1 {
+			return nil
+		}
+		videoPath = videos[0].Path
+		BuildIpldGraph(ctx, append(videos, graphFiles...), GenGraphName(params.GraphName, graphSliceCount, sliceTotal), params)
 		log.Infof("cumu-size: %d", cumuSize)
 		log.Infof("%s", GenGraphName(params.GraphName, graphSliceCount, sliceTotal))
+		err := os.Remove(videoPath)
+		if err != nil {
+			log.Warnf("remove video path:%+v : err %s", videoPath, err.Error())
+		}
 		log.Infof("=================")
 	}
 	return nil

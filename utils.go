@@ -144,7 +144,7 @@ func BuildIpldGraph(ctx context.Context,
 	params *ChunkParams,
 ) {
 	buf, payloadCid, fsDetail, err := buildIpldGraph(ctx, fileList, params.ParentPath, params.Parallel,
-		params.ExpectSliceSize, params.Ef, params.SkipFilename)
+		params.ExpectSliceSize, params.Vf, params.SkipFilename)
 	if err != nil {
 		// log.Fatal(err)
 		params.Cb.OnError(err)
@@ -158,7 +158,7 @@ func buildIpldGraph(ctx context.Context,
 	parentPath string,
 	parallel int,
 	sliceSize int64,
-	ef *ExtraFile,
+	ef *VideoFile,
 	skipFilename bool,
 ) (*Buffer, string, string, error) {
 	bs2 := bstore.NewBlockstore(dss.MutexWrap(datastore.NewMapDatastore()))
@@ -221,7 +221,7 @@ func buildIpldGraph(ctx context.Context,
 		// log.Infof("file name: %s, file size: %d, item size: %d, seek-start:%d, seek-end:%d", item.Name, item.Info.Size(), item.SeekEnd-item.SeekStart, item.SeekStart, item.SeekEnd)
 		dirStr := path.Dir(item.Path)
 		parentPath = path.Clean(parentPath)
-		parentPath2 := path.Clean(ef.path)
+		parentPath2 := path.Clean(ef.videoOutputPath)
 		// log.Infof("parentPath: %s, parentPath2: %s, item.Path: %s, clean path: %v, dirStr: %s", parentPath, parentPath2, item.Path, path.Clean(item.Path), dirStr)
 		// when parent path equal target path, and the parent path is also a file path
 		if parentPath == path.Clean(item.Path) || parentPath2 == path.Clean(item.Path) {

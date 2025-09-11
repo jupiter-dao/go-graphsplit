@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"os"
 	"strings"
 	"time"
@@ -103,6 +104,62 @@ var chunkCmd = &cli.Command{
 		&cli.BoolFlag{
 			Name:  "skip-filename",
 			Usage: "manifest csv detail not contain filename",
+			Value: true,
+		},
+		&cli.IntFlag{
+			Name:  "base-limit",
+			Usage: "base of limit",
+			Value: 0,
+		},
+		&cli.StringFlag{
+			Name:  "base-rename",
+			Usage: "base of rename",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "video-path",
+			Usage: "original video path",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "video-output-path",
+			Usage: "video output path",
+			Value: "",
+		},
+		&cli.IntFlag{
+			Name:  "limit",
+			Usage: "number of limit",
+			Value: 1000,
+		},
+		&cli.BoolFlag{
+			Name:  "send",
+			Usage: "is send deal",
+			Value: false,
+		},
+		&cli.StringFlag{
+			Name:  "providers",
+			Usage: "storage provider on-chain address(multiple are separated by -)",
+			Value: "",
+		},
+		&cli.IntFlag{
+			Name:  "duration",
+			Usage: "duration of the deal in epochs",
+			Value: 1036800, // default is 2880 * 460 == 1036800 days
+		},
+		&cli.Int64Flag{
+			Name:  "wait",
+			Usage: "wait send",
+			Value: 0,
+		},
+		&cli.BoolFlag{
+			Name:  "delete-after-import",
+			Usage: "whether to delete the data for the offline deal after the deal has been added to a sector",
+			Value: false,
+		},
+		&cli.BoolFlag{
+			Name:  "remove-unsealed-copy",
+			Usage: "indicates that an unsealed copy of the sector in not required for fast retrieval",
+			Value: false,
 		},
 	},
 	ArgsUsage: "<input path>",
@@ -118,7 +175,24 @@ var chunkCmd = &cli.Command{
 		if !graphsplit.ExistDir(carDir) {
 			return fmt.Errorf("the path of car-dir does not exist")
 		}
-
+		baseRename := c.String("base-rename")
+		if baseRename == "" {
+			baseRename = uuid.New().String()
+		}
+		videoPath := c.String("video-path")
+		if videoPath == "" {
+			return fmt.Errorf("must input video path")
+		}
+		limitN := c.Int("limit")
+		if limitN <= 0 {
+			return fmt.Errorf("limit cannot be less than 0")
+		}
+		endTime, err := graphsplit.GetVideoDuration(videoPath)
+		if err != nil {
+			return fmt.Errorf("get video duration err %s", err.Error())
+		}
+		log.Infof("videoPath %s ,duration : %+v s", videoPath, endTime)
+		baseLimit := c.Int("base-limit")
 		cfgPath := c.String("config")
 		if cfgPath == "" {
 			return fmt.Errorf("config file path is required")
@@ -157,11 +231,10 @@ var chunkCmd = &cli.Command{
 		}
 		log.Infof("extra file slice size: %d, random rename source file: %v, random select file: %v", extraFileSliceSize, randomRenameSourceFile, randomSelectFile)
 		log.Infof("skip filename: %v", skipFilename)
-		ef, err := graphsplit.NewExtraFile(strings.TrimSuffix(cfg.ExtraFilePath, "/"), int64(extraFileSliceSize), int64(sliceSize), randomRenameSourceFile)
-		if err != nil {
-			return err
-		}
-
+		//ef, err := graphsplit.NewExtraFile(strings.TrimSuffix(cfg.ExtraFilePath, "/"), int64(extraFileSliceSize), int64(sliceSize), randomRenameSourceFile)
+		//if err != nil {
+		//	return err
+		//}
 		targetPath := strings.TrimSuffix(c.Args().First(), "/")
 		var cb graphsplit.GraphBuildCallback
 		if c.Bool("calc-commp") {
@@ -171,16 +244,24 @@ var chunkCmd = &cli.Command{
 		} else {
 			cb = graphsplit.ErrCallback()
 		}
-
+		videoOutputPath := c.String("video-output-path")
+		if videoOutputPath == "" {
+			videoOutputPath = targetPath
+		}
+		vf, err := graphsplit.NewVideoFile(videoPath, videoOutputPath, int64(baseLimit), baseRename)
+		if err != nil {
+			return err
+		}
 		params := graphsplit.ChunkParams{
-			ExpectSliceSize:        int64(sliceSize),
-			ParentPath:             parentPath,
-			TargetPath:             targetPath,
-			CarDir:                 carDir,
-			GraphName:              graphName,
-			Parallel:               int(parallel),
-			Cb:                     cb,
-			Ef:                     ef,
+			ExpectSliceSize: int64(sliceSize),
+			ParentPath:      parentPath,
+			TargetPath:      targetPath,
+			CarDir:          carDir,
+			GraphName:       graphName,
+			Parallel:        int(parallel),
+			Cb:              cb,
+			//Ef:                     ef,
+			Vf:                     vf,
 			RandomRenameSourceFile: randomRenameSourceFile,
 			RandomSelectFile:       randomSelectFile,
 			SkipFilename:           skipFilename,

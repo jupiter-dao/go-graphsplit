@@ -7,7 +7,9 @@ Go-graphsplit
 
 > A tool for splitting a large dataset into graph slices to make deals in the Filecoin Network
 
-
+```bash
+export TMPDIR=/data/workspace/tmp1 && graphsplit chunk --video-path=/data/workspace/inputVideo/66158.mp4 --video-output-path=/data/workspace/outVideo --car-dir=/data/workspace/meta --parallel=16 --graph-name=glad-landsat-ard  --add-padding=false --rename=false --config=/data/workspace/config.toml --limit=100 --loop=true --base-rename=glad-landsat-ard001 --calc-commp=true --base-limit=1000  /data/workspace/edition1
+```
 When storing a large dataset, we need to split it into smaller pieces to fit the sector's size, which could generally be 32GiB or 64GiB.
 
 If we make these data into a large tarball, chunk it into small pieces, and then make storage deals with miners with these pieces, on the side of storage, it will be pretty efficient and allow us to store hundreds of TiB data in a month. However, this way will also bring difficulties for data retrieval. Even if we only needed to retrieve a small file, we would first have to retrieve and download all the pieces of this tarball, decompress it, and find the specific file we needed.
