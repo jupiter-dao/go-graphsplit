@@ -161,6 +161,11 @@ var chunkCmd = &cli.Command{
 			Usage: "indicates that an unsealed copy of the sector in not required for fast retrieval",
 			Value: false,
 		},
+		&cli.StringFlag{
+			Name:    "dsn",
+			Aliases: []string{"d"},
+			Usage:   "input the dsn address",
+		},
 	},
 	ArgsUsage: "<input path>",
 	Action: func(c *cli.Context) error {
@@ -252,6 +257,32 @@ var chunkCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
+		//DB
+		// 初始化日志（go-log/v2）
+		logging.SetLogLevel("graphsplit", "debug") // 或 "debug" 以查看更多日志
+		// 创建数据库配置
+		config := &graphsplit.DBConfig{
+			DSN:             c.String("dsn"),
+			MaxIdleConns:    10,
+			MaxOpenConns:    100,
+			ConnMaxLifetime: time.Hour,
+			ConnMaxIdleTime: time.Minute * 30,
+			LogLevel:        "warn", // GORM 日志级别
+		}
+
+		// 初始化数据库管理器
+		mgr, err := graphsplit.NewDBManager(config)
+		if err != nil {
+			log.Fatalf("Failed to create DBManager: %v", err)
+		}
+		defer mgr.Close() // 确保关闭连接
+
+		// 执行迁移（创建表和约束）
+		if err := mgr.Migrate(); err != nil {
+			log.Fatalf("Migration failed: %v", err)
+		}
+		log.Info("Database migrated successfully.")
+
 		params := graphsplit.ChunkParams{
 			ExpectSliceSize: int64(sliceSize),
 			ParentPath:      parentPath,
@@ -265,6 +296,7 @@ var chunkCmd = &cli.Command{
 			RandomRenameSourceFile: randomRenameSourceFile,
 			RandomSelectFile:       randomSelectFile,
 			SkipFilename:           skipFilename,
+			DB:                     mgr,
 		}
 
 		loop := c.Bool("loop")

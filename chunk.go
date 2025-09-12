@@ -167,6 +167,7 @@ type ChunkParams struct {
 	RandomRenameSourceFile bool
 	RandomSelectFile       bool
 	SkipFilename           bool
+	DB                     *DBManager
 }
 
 func Chunk(ctx context.Context, params *ChunkParams) error {
