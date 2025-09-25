@@ -143,6 +143,10 @@ func BuildIpldGraph(ctx context.Context,
 	graphName string,
 	params *ChunkParams,
 ) {
+	start := time.Now()
+	defer func() {
+		log.Infof("BuildIpldGraph took: %v", time.Since(start))
+	}()
 	buf, payloadCid, fsDetail, err := buildIpldGraph(ctx, fileList, params.ParentPath, params.Parallel,
 		params.ExpectSliceSize, params.Ef, params.SkipFilename)
 	if err != nil {
