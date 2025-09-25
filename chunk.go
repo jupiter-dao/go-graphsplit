@@ -42,6 +42,8 @@ func (cc *commPCallback) OnSuccess(buf *Buffer, graphName, payloadCid, fsDetail 
 	carFilePath := filepath.Join(cc.carDir, cpRes.Root.String())
 	carFileNameWithSuffix := carFilePath + ".car"
 
+	log.Infof("start write car to tile")
+	writeStart := time.Now()
 	carFile, err := os.OpenFile(carFileNameWithSuffix, os.O_RDWR|os.O_CREATE, 0o644)
 	if err != nil {
 		log.Fatalf("failed to create car file: %s", err)
@@ -52,6 +54,7 @@ func (cc *commPCallback) OnSuccess(buf *Buffer, graphName, payloadCid, fsDetail 
 	}
 	buf.Reset()
 	carFile.Close()
+	log.Infof("end write car to file: %v", time.Since(writeStart))
 
 	if cc.rename {
 		if err := os.Rename(carFileNameWithSuffix, carFilePath); err != nil {
